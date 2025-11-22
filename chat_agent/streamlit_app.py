@@ -24,10 +24,255 @@ def _inject_chat_styles() -> None:
     st.markdown(
         """
         <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+        * {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+
         .chat-scroll {
             max-height: 70vh;
             overflow-y: auto;
             padding-right: 0.5rem;
+        }
+
+        .landing-header {
+            text-align: center !important;
+            margin-bottom: 3rem;
+            padding: 2rem 0;
+        }
+
+        .landing-header * {
+            text-align: center !important;
+        }
+
+        .landing-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.5rem;
+            letter-spacing: -0.02em;
+        }
+
+        .landing-subtitle {
+            font-size: 1.1rem;
+            color: #64748b;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+        }
+
+        .landing-description {
+            font-size: 0.95rem;
+            color: #94a3b8;
+            max-width: 700px;
+            margin: 0 auto !important;
+            line-height: 1.6;
+            text-align: center !important;
+            display: block;
+            padding: 0 2rem;
+        }
+
+        .persona-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 1rem;
+        }
+
+        .persona-card {
+            border: 2px solid #e2e8f0;
+            border-radius: 16px;
+            padding: 28px;
+            background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+            height: 550px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+            overflow-y: auto;
+            position: relative;
+        }
+
+        .persona-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            border-radius: 16px 16px 0 0;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .persona-card:hover {
+            border-color: #667eea;
+            box-shadow: 0 20px 25px -5px rgba(102, 126, 234, 0.15), 0 10px 10px -5px rgba(118, 75, 162, 0.08);
+            transform: translateY(-4px) scale(1.01);
+        }
+
+        .persona-card:hover::before {
+            opacity: 1;
+        }
+
+        .persona-card.selected {
+            border-color: #667eea;
+            background: linear-gradient(135deg, #f0f4ff 0%, #e8f0ff 100%);
+            box-shadow: 0 20px 25px -5px rgba(102, 126, 234, 0.2), 0 10px 10px -5px rgba(118, 75, 162, 0.1);
+            transform: scale(1.02);
+        }
+
+        .persona-card.selected::before {
+            opacity: 1;
+        }
+
+        .persona-avatar {
+            font-size: 64px;
+            text-align: center;
+            margin-bottom: 16px;
+            filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.1));
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .persona-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 8px;
+            text-align: center;
+            letter-spacing: -0.01em;
+        }
+
+        .persona-subtitle {
+            font-size: 15px;
+            color: #667eea;
+            margin-bottom: 20px;
+            text-align: center;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-size: 13px;
+        }
+
+        .persona-details {
+            font-size: 14.5px;
+            line-height: 1.8;
+            color: #475569;
+            font-weight: 500;
+            flex-grow: 1;
+            text-align: justify;
+            padding: 16px;
+            background: rgba(255, 255, 255, 0.6);
+            border-radius: 12px;
+            border: 1px solid #f1f5f9;
+        }
+
+        .persona-details p {
+            margin: 0;
+        }
+
+        /* Custom scrollbar for persona cards */
+        .persona-card::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .persona-card::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 10px;
+        }
+
+        .persona-card::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 10px;
+        }
+
+        .persona-card::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        /* Enhanced button styles */
+        .stButton > button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+            color: white !important;
+            border: none !important;
+            border-radius: 12px !important;
+            padding: 12px 24px !important;
+            font-weight: 600 !important;
+            font-size: 15px !important;
+            transition: all 0.3s ease !important;
+            box-shadow: 0 4px 6px -1px rgba(102, 126, 234, 0.3) !important;
+            letter-spacing: 0.02em !important;
+        }
+
+        .stButton > button:hover {
+            transform: translateY(-2px) !important;
+            box-shadow: 0 10px 15px -3px rgba(102, 126, 234, 0.4) !important;
+        }
+
+        .stButton > button:active {
+            transform: translateY(0px) !important;
+        }
+
+        /* Divider styling */
+        hr {
+            margin: 2rem 0;
+            border: none;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, #e2e8f0, transparent);
+        }
+
+        /* Badge styling */
+        .persona-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-top: 8px;
+        }
+
+        /* Responsive design */
+        @media (max-width: 768px) {
+            .landing-title {
+                font-size: 2rem;
+            }
+            .persona-card {
+                height: auto;
+                min-height: 450px;
+            }
+        }
+
+        /* Smooth page load animation */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .persona-container {
+            animation: fadeIn 0.6s ease-out;
+        }
+
+        .landing-header {
+            animation: fadeIn 0.8s ease-out;
         }
         </style>
         """,
@@ -56,6 +301,8 @@ def _ensure_session_state() -> None:
         st.session_state.greeted = False
     if "pending_hie_related" not in st.session_state:
         st.session_state.pending_hie_related = True
+    if "selected_persona" not in st.session_state:
+        st.session_state.selected_persona = None
 
 
 def _bootstrap_agent() -> DifyAgent:
@@ -228,38 +475,176 @@ def _sync_agent_conversation(agent: DifyAgent) -> None:
             break
 
 
+def _render_persona_selection() -> None:
+    st.markdown(
+        """
+        <div class="landing-header">
+            <h1 class="landing-title">Welcome to HIE Support Agent</h1>
+            <p class="landing-subtitle">Personalized AI-Powered Support for Parents</p>
+            <p class="landing-description">
+                Choose the persona that best matches your current journey. Our AI assistant is designed to provide
+                tailored guidance and support based on your specific stage and needs.
+            </p>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+    col1, col2 = st.columns(2, gap="large")
+
+    personas = {
+        "sarah": {
+            "avatar": "👩",
+            "name": "Sarah",
+            "stage": "NICU Stage Parent",
+            "subtitle": "Information seeking to learn more about HIE",
+            "description": "Sarah is a 32-year-old parent whose baby, Emma (born October 22, 2025), was diagnosed with Hypoxic-Ischemic Encephalopathy (HIE) shortly after birth three weeks ago. Emma is currently 3 weeks old. Seeking support and information, Sarah has been using an AI Large Language Model (LLM) chatbot designed specifically for parents of children with HIE. Over the past three weeks, Sarah has asked the chatbot ten questions about her baby's condition, treatments, and developmental milestones. Sarah has a follow-up appointment coming up soon with her baby's neonatologist.",
+        },
+        "marcus": {
+            "avatar": "👨",
+            "name": "Marcus",
+            "stage": "Early Intervention Stage Parent",
+            "subtitle": "Focused more on learning and attention",
+            "description": "Marcus is a 38-year-old parent whose daughter, Zara (born September 10, 2021), was diagnosed with Hypoxic-Ischemic Encephalopathy (HIE) shortly after birth four years ago. Zara is now 4 years, 2 months old and receives multiple early intervention services including physical therapy, occupational therapy, and speech therapy. She has been diagnosed with spastic cerebral palsy and has expressive language delays. Seeking ongoing support and information, Marcus has been using an AI Large Language Model (LLM) chatbot designed specifically for parents of children with HIE. Over the past three months, Marcus has asked the chatbot ten questions about his daughter's therapies, development, and educational planning. Marcus has an upcoming IEP meeting to discuss Zara's transition from preschool special education to kindergarten.",
+        }
+    }
+
+    with col1:
+        persona = personas["sarah"]
+        selected_class = "selected" if st.session_state.selected_persona == "sarah" else ""
+
+        st.markdown(f"""
+        <div class="persona-card {selected_class}">
+            <div class="persona-avatar">{persona['avatar']}</div>
+            <div class="persona-title">{persona['name']}</div>
+            <div class="persona-subtitle">{persona['stage']}</div>
+            <div class="persona-details">
+                <p>{persona['description']}</p>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        if st.button("Continue as Sarah", key="btn_sarah", use_container_width=True):
+            st.session_state.selected_persona = "sarah"
+            st.rerun()
+
+    with col2:
+        persona = personas["marcus"]
+        selected_class = "selected" if st.session_state.selected_persona == "marcus" else ""
+
+        st.markdown(f"""
+        <div class="persona-card {selected_class}">
+            <div class="persona-avatar">{persona['avatar']}</div>
+            <div class="persona-title">{persona['name']}</div>
+            <div class="persona-subtitle">{persona['stage']}</div>
+            <div class="persona-details">
+                <p>{persona['description']}</p>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        if st.button("Continue as Marcus", key="btn_marcus", use_container_width=True):
+            st.session_state.selected_persona = "marcus"
+            st.rerun()
+
+    # Footer
+    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown(
+        """
+        <div style="text-align: center; padding: 2rem 0 1rem 0; color: #94a3b8; font-size: 0.9rem;">
+            <p style="margin: 0;">🧠 Powered by Dify AI & Dr. T. Tsai & G. Nandy Research Lab</p>
+            <p style="margin: 0.5rem 0 0 0; font-size: 0.85rem; color: #cbd5e1;">
+                Advanced AI technology for personalized HIE parent support
+            </p>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+
 def main() -> None:
     st.set_page_config(
-        page_title="HIE: Support Agent",
-        page_icon=":speech_balloon:",
-        layout="centered",
+        page_title="HIE Support Agent - Personalized AI Assistance",
+        page_icon="🧠",
+        layout="wide",
+        initial_sidebar_state="collapsed",
     )
-    st.title("HIE: Support Agent")
-    st.caption("Powered by Dify & Dr. T. Sai & G. Nandy research lab")
+
+    # Hide Streamlit default elements for cleaner look
+    st.markdown(
+        """
+        <style>
+        #MainMenu {visibility: hidden;}
+        footer {visibility: hidden;}
+        header {visibility: hidden;}
+        .block-container {
+            padding-top: 2rem;
+            padding-bottom: 2rem;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
 
     _ensure_session_state()
     _inject_chat_styles()
 
+    # Step 1: Persona Selection
+    if not st.session_state.selected_persona:
+        _render_persona_selection()
+        return
+
+    # Step 2: Email Authentication
     if not st.session_state.user_email:
-        st.subheader("Sign in to continue")
-        email = st.text_input("Email address", placeholder="name@example.com")
-        error_message = ""
+        # Show selected persona info
+        persona_name = st.session_state.selected_persona.capitalize()
+        persona_emoji = "👩" if st.session_state.selected_persona == "sarah" else "👨"
+        persona_stage = "NICU Stage Parent" if st.session_state.selected_persona == "sarah" else "Early Intervention Stage Parent"
 
-        if st.button("Continue"):
-            candidate = email.strip()
-            if (
-                "@" not in candidate
-                or candidate.count("@") != 1
-                or candidate.startswith("@")
-                or candidate.endswith("@")
-            ):
-                error_message = "Please enter a valid email address."
-            else:
-                st.session_state.user_email = candidate
-                st.rerun()
+        st.markdown(
+            f"""
+            <div class="landing-header">
+                <h1 class="landing-title">Almost There!</h1>
+                <p class="landing-subtitle">{persona_emoji} Continuing as {persona_name} - {persona_stage}</p>
+                <p class="landing-description">
+                    Please enter your email address to access your personalized support experience.
+                    Your information is secure and private.
+                </p>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
 
-        if error_message:
-            st.error(error_message)
+        # Center the form
+        col_left, col_center, col_right = st.columns([1, 2, 1])
+
+        with col_center:
+            email = st.text_input("Email address", placeholder="name@example.com", label_visibility="collapsed")
+            error_message = ""
+
+            col1, col2 = st.columns([3, 1])
+            with col1:
+                if st.button("Continue to Chat", use_container_width=True):
+                    candidate = email.strip()
+                    if (
+                        "@" not in candidate
+                        or candidate.count("@") != 1
+                        or candidate.startswith("@")
+                        or candidate.endswith("@")
+                    ):
+                        error_message = "Please enter a valid email address."
+                    else:
+                        st.session_state.user_email = candidate
+                        st.rerun()
+
+            with col2:
+                if st.button("← Back", use_container_width=True):
+                    st.session_state.selected_persona = None
+                    st.rerun()
+
+            if error_message:
+                st.error(error_message)
+
         return
 
     _ensure_knowledge_client()
@@ -289,9 +674,16 @@ def main() -> None:
     history_container = st.container()
 
     with header_container:
+        # Display persona and user info
+        persona_emoji = "👩" if st.session_state.selected_persona == "sarah" else "👨"
+        persona_name = st.session_state.selected_persona.capitalize()
+        persona_stage = "NICU Stage Parent" if st.session_state.selected_persona == "sarah" else "Early Intervention Stage Parent"
+
+        st.markdown(f"{persona_emoji} **Persona:** {persona_name} ({persona_stage})")
         st.markdown(f"**Logged in as:** {st.session_state.user_email}")
         if st.session_state.user_name:
             st.markdown(f"**Name on record:** {st.session_state.user_name}")
+        st.divider()
 
     with history_container:
         _render_history()
