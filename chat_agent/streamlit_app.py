@@ -715,13 +715,12 @@ def main() -> None:
         initial_sidebar_state="expanded",
     )
 
-    # Hide Streamlit default elements for cleaner look
+    # Hide Streamlit default elements for cleaner look (keep header for sidebar toggle)
     st.markdown(
         """
         <style>
         #MainMenu {visibility: hidden;}
         footer {visibility: hidden;}
-        header {visibility: hidden;}
         .block-container {
             padding-top: 2rem;
             padding-bottom: 2rem;
