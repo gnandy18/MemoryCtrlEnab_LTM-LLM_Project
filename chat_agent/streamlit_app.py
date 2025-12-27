@@ -715,7 +715,7 @@ def main() -> None:
         initial_sidebar_state="expanded",
     )
 
-    # Hide Streamlit default elements for cleaner look and force sidebar visible
+    # Hide Streamlit default elements for cleaner look
     st.markdown(
         """
         <style>
@@ -725,33 +725,6 @@ def main() -> None:
         .block-container {
             padding-top: 2rem;
             padding-bottom: 2rem;
-        }
-
-        /* Force sidebar to always be visible */
-        [data-testid="stSidebar"] {
-            display: flex !important;
-            flex-direction: column;
-            width: 300px !important;
-            min-width: 300px !important;
-            transform: none !important;
-            visibility: visible !important;
-        }
-
-        [data-testid="stSidebar"][aria-expanded="false"] {
-            display: flex !important;
-            visibility: visible !important;
-            margin-left: 0 !important;
-            transform: none !important;
-        }
-
-        /* Ensure main content doesn't overlap sidebar */
-        section[data-testid="stMain"] {
-            margin-left: 300px !important;
-        }
-
-        /* Hide the collapse button since sidebar is always visible */
-        [data-testid="stSidebar"] button[kind="header"] {
-            display: none !important;
         }
         </style>
         """,
@@ -867,6 +840,32 @@ def main() -> None:
             {"role": "assistant", "content": consent_message, "show_sources": False}
         ] + st.session_state.messages
         st.session_state.consent_shown = True
+
+    # Auto-expand sidebar on chat page load using components.html
+    # This runs JavaScript that clicks the expand button if sidebar is collapsed
+    # User can still manually collapse/expand the sidebar
+    import streamlit.components.v1 as components
+    components.html(
+        """
+        <script>
+        function expandSidebar() {
+            const sidebar = window.parent.document.querySelector('[data-testid="stSidebar"]');
+            if (sidebar && sidebar.getAttribute('aria-expanded') === 'false') {
+                const expandButton = window.parent.document.querySelector('[data-testid="collapsedControl"]');
+                if (expandButton) {
+                    expandButton.click();
+                }
+            }
+        }
+        // Try immediately and after a short delay to handle race conditions
+        expandSidebar();
+        setTimeout(expandSidebar, 100);
+        setTimeout(expandSidebar, 500);
+        </script>
+        """,
+        height=0,
+        width=0,
+    )
 
     # Sidebar with data privacy controls
     with st.sidebar:
