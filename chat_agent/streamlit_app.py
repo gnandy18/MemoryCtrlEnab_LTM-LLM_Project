@@ -841,32 +841,6 @@ def main() -> None:
         ] + st.session_state.messages
         st.session_state.consent_shown = True
 
-    # Auto-expand sidebar on chat page load using components.html
-    # This runs JavaScript that clicks the expand button if sidebar is collapsed
-    # User can still manually collapse/expand the sidebar
-    import streamlit.components.v1 as components
-    components.html(
-        """
-        <script>
-        function expandSidebar() {
-            const sidebar = window.parent.document.querySelector('[data-testid="stSidebar"]');
-            if (sidebar && sidebar.getAttribute('aria-expanded') === 'false') {
-                const expandButton = window.parent.document.querySelector('[data-testid="collapsedControl"]');
-                if (expandButton) {
-                    expandButton.click();
-                }
-            }
-        }
-        // Try immediately and after a short delay to handle race conditions
-        expandSidebar();
-        setTimeout(expandSidebar, 100);
-        setTimeout(expandSidebar, 500);
-        </script>
-        """,
-        height=0,
-        width=0,
-    )
-
     # Sidebar with data privacy controls
     with st.sidebar:
         st.markdown("### Data Privacy")
@@ -932,6 +906,9 @@ def main() -> None:
         st.markdown(f"**Logged in as:** {st.session_state.user_email}")
         if st.session_state.user_name:
             st.markdown(f"**Name on record:** {st.session_state.user_name}")
+
+        # Info banner for data privacy - guides users to sidebar
+        st.info("🔒 **Data Privacy:** Click the **☰** menu (top-left) to view or delete your stored data.", icon="ℹ️")
         st.divider()
 
     with history_container:
