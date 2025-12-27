@@ -905,9 +905,6 @@ def main() -> None:
         st.markdown(f"**Logged in as:** {st.session_state.user_email}")
         if st.session_state.user_name:
             st.markdown(f"**Name on record:** {st.session_state.user_name}")
-
-        # Info banner for data privacy - guides users to sidebar
-        st.info("🔒 **Data Privacy:** Click the **☰** menu (top-left) to view or delete your stored data.", icon="ℹ️")
         st.divider()
 
     with history_container:
