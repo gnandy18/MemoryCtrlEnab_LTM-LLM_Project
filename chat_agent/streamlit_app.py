@@ -712,7 +712,7 @@ def main() -> None:
         page_title="HIE Support Agent - Personalized AI Assistance",
         page_icon="🧠",
         layout="wide",
-        initial_sidebar_state="collapsed",
+        initial_sidebar_state="expanded",
     )
 
     # Hide Streamlit default elements for cleaner look
