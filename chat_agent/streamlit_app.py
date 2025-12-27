@@ -715,7 +715,7 @@ def main() -> None:
         initial_sidebar_state="expanded",
     )
 
-    # Hide Streamlit default elements for cleaner look
+    # Hide Streamlit default elements for cleaner look and force sidebar visible
     st.markdown(
         """
         <style>
@@ -725,6 +725,33 @@ def main() -> None:
         .block-container {
             padding-top: 2rem;
             padding-bottom: 2rem;
+        }
+
+        /* Force sidebar to always be visible */
+        [data-testid="stSidebar"] {
+            display: flex !important;
+            flex-direction: column;
+            width: 300px !important;
+            min-width: 300px !important;
+            transform: none !important;
+            visibility: visible !important;
+        }
+
+        [data-testid="stSidebar"][aria-expanded="false"] {
+            display: flex !important;
+            visibility: visible !important;
+            margin-left: 0 !important;
+            transform: none !important;
+        }
+
+        /* Ensure main content doesn't overlap sidebar */
+        section[data-testid="stMain"] {
+            margin-left: 300px !important;
+        }
+
+        /* Hide the collapse button since sidebar is always visible */
+        [data-testid="stSidebar"] button[kind="header"] {
+            display: none !important;
         }
         </style>
         """,
