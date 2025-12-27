@@ -469,3 +469,85 @@ class DifyKnowledgeClient:
 
     def get_known_name(self, email: str) -> str:
         return self._known_names.get(email, "")
+
+    def delete_user_data(self, email: str) -> bool:
+        """
+        Delete all stored data for the given email.
+
+        Returns True if data was found and deleted, False if no data existed.
+        """
+        try:
+            segment, _ = self._find_existing_segment(email)
+        except DifyKnowledgeClientError:
+            raise
+        except Exception as exc:
+            raise DifyKnowledgeClientError(str(exc)) from exc
+
+        if not segment:
+            return False
+
+        self._delete_segment(segment["id"])
+        if email in self._known_names:
+            del self._known_names[email]
+        return True
+
+    def get_stored_info_summary(self, email: str) -> Dict[str, Any]:
+        """
+        Get a summary of what information is stored for a user.
+
+        Returns a dictionary with:
+        - has_data: bool indicating if any data exists
+        - name: stored user name (if any)
+        - message_count: number of stored messages
+        - first_interaction: timestamp of first message (if any)
+        - last_interaction: timestamp of last message (if any)
+        - sample_topics: list of a few summarized topics from history
+        """
+        try:
+            segment, payload = self._find_existing_segment(email)
+        except DifyKnowledgeClientError:
+            raise
+        except Exception as exc:
+            raise DifyKnowledgeClientError(str(exc)) from exc
+
+        if not segment or not payload:
+            return {
+                "has_data": False,
+                "name": "",
+                "message_count": 0,
+                "first_interaction": None,
+                "last_interaction": None,
+                "sample_topics": [],
+            }
+
+        name, history = self._parse_record(payload)
+        message_count = len(history)
+
+        first_interaction = None
+        last_interaction = None
+        sample_topics: List[str] = []
+
+        if history:
+            timestamps = [
+                entry.get("timestamp") for entry in history if entry.get("timestamp")
+            ]
+            if timestamps:
+                first_interaction = min(timestamps)
+                last_interaction = max(timestamps)
+
+            # Get sample topics from user messages (up to 3)
+            user_messages = [
+                entry.get("summary", "")
+                for entry in history
+                if entry.get("role") == "user" and entry.get("summary")
+            ]
+            sample_topics = user_messages[-3:] if user_messages else []
+
+        return {
+            "has_data": True,
+            "name": name,
+            "message_count": message_count,
+            "first_interaction": first_interaction,
+            "last_interaction": last_interaction,
+            "sample_topics": sample_topics,
+        }

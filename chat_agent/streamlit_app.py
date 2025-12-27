@@ -303,6 +303,8 @@ def _ensure_session_state() -> None:
         st.session_state.pending_hie_related = True
     if "selected_persona" not in st.session_state:
         st.session_state.selected_persona = None
+    if "consent_shown" not in st.session_state:
+        st.session_state.consent_shown = False
 
 
 def _bootstrap_agent() -> DifyAgent:
@@ -333,41 +335,49 @@ def _render_history() -> None:
         with st.chat_message(message.get("role", "user")):
             st.markdown(message.get("content", ""))
             if message.get("show_sources", True):
-                _render_citations(message.get("citations"))
+                _render_citations(
+                    message.get("citations"),
+                    fallback_to_web=message.get("fallback_to_web", False),
+                )
     st.markdown("</div>", unsafe_allow_html=True)
 
 
-def _render_citations(citations: Optional[List[Dict[str, str]]]) -> None:
-    if not citations:
-        return
-
+def _render_citations(
+    citations: Optional[List[Dict[str, str]]],
+    fallback_to_web: bool = False,
+) -> None:
     seen: Set[str] = set()
     ordered_sources: List[str] = []
 
-    for citation in citations:
-        source = citation.get("source") or ""
-        title = citation.get("title") or ""
+    if citations:
+        for citation in citations:
+            source = citation.get("source") or ""
+            title = citation.get("title") or ""
 
-        source_stripped = source.strip()
-        title_stripped = title.strip()
+            source_stripped = source.strip()
+            title_stripped = title.strip()
 
-        if source_stripped and (
-            source_stripped.lower().startswith(("http://", "https://"))
-            or source_stripped.lower().endswith(".pdf")
-        ):
-            display_value = source_stripped
-        elif title_stripped:
-            display_value = title_stripped
-        else:
-            display_value = source_stripped or ""
+            if source_stripped and (
+                source_stripped.lower().startswith(("http://", "https://"))
+                or source_stripped.lower().endswith(".pdf")
+            ):
+                display_value = source_stripped
+            elif title_stripped:
+                display_value = title_stripped
+            else:
+                display_value = source_stripped or ""
 
-        if not display_value:
-            display_value = f"Source {len(ordered_sources) + 1}"
+            if not display_value:
+                display_value = f"Source {len(ordered_sources) + 1}"
 
-        if display_value in seen:
-            continue
-        seen.add(display_value)
-        ordered_sources.append(display_value)
+            if display_value in seen:
+                continue
+            seen.add(display_value)
+            ordered_sources.append(display_value)
+
+    # If no citations found and fallback is enabled, show "Web" as source
+    if not ordered_sources and fallback_to_web:
+        ordered_sources.append("Web")
 
     if not ordered_sources:
         return
@@ -383,11 +393,13 @@ def _append_message(
     conversation_id: Optional[str] = None,
     citations: Optional[List[Dict[str, str]]] = None,
     show_citations: bool = True,
+    fallback_to_web: bool = False,
 ) -> None:
     message: Dict[str, Any] = {
         "role": role,
         "content": content,
         "show_sources": show_citations,
+        "fallback_to_web": fallback_to_web,
     }
     if conversation_id:
         message["conversation_id"] = conversation_id
@@ -473,6 +485,139 @@ def _sync_agent_conversation(agent: DifyAgent) -> None:
         if conversation_id:
             agent.set_conversation_id(conversation_id)
             break
+
+
+def _is_data_info_request(prompt: str) -> bool:
+    """Check if user is asking about what data is being stored."""
+    prompt_lower = prompt.lower().strip()
+    info_keywords = [
+        "what information",
+        "what data",
+        "what are you saving",
+        "what do you save",
+        "what are you storing",
+        "what do you store",
+        "what's being saved",
+        "what is being saved",
+        "what's being stored",
+        "what is being stored",
+        "show my data",
+        "show my information",
+        "view my data",
+        "view my information",
+        "my stored data",
+        "my saved data",
+    ]
+    return any(keyword in prompt_lower for keyword in info_keywords)
+
+
+def _is_delete_data_request(prompt: str) -> bool:
+    """Check if user is requesting to delete their data."""
+    prompt_lower = prompt.lower().strip()
+    delete_keywords = [
+        "delete my data",
+        "delete my information",
+        "remove my data",
+        "remove my information",
+        "erase my data",
+        "erase my information",
+        "clear my data",
+        "clear my information",
+        "forget me",
+        "forget my data",
+        "delete everything",
+        "remove everything",
+    ]
+    return any(keyword in prompt_lower for keyword in delete_keywords)
+
+
+def _handle_data_info_request() -> str:
+    """Generate a response describing what data is stored for the user."""
+    client: Optional[DifyKnowledgeClient] = st.session_state.get("knowledge_client")
+
+    if not client or not st.session_state.knowledge_available:
+        return (
+            "I don't have any stored information about you because the data storage "
+            "feature is not currently enabled."
+        )
+
+    try:
+        info = client.get_stored_info_summary(st.session_state.user_email)
+    except DifyKnowledgeClientError:
+        return (
+            "I'm sorry, I couldn't retrieve your stored information at this time. "
+            "Please try again later."
+        )
+
+    if not info.get("has_data"):
+        return (
+            "I don't have any stored information about you yet. "
+            "As we chat, I may save summaries of our conversations to help provide "
+            "better support in the future."
+        )
+
+    response_parts = ["Here's what information I have stored about you:\n"]
+
+    if info.get("name"):
+        response_parts.append(f"- **Your name:** {info['name']}")
+
+    response_parts.append(f"- **Number of stored messages:** {info['message_count']}")
+
+    if info.get("first_interaction"):
+        response_parts.append(f"- **First interaction:** {info['first_interaction']}")
+
+    if info.get("last_interaction"):
+        response_parts.append(f"- **Last interaction:** {info['last_interaction']}")
+
+    if info.get("sample_topics"):
+        response_parts.append("\n**Recent topics we discussed:**")
+        for topic in info["sample_topics"]:
+            # Truncate long summaries
+            display_topic = topic[:100] + "..." if len(topic) > 100 else topic
+            response_parts.append(f"- {display_topic}")
+
+    response_parts.append(
+        "\n*I store summarized versions of our conversations (not full transcripts) "
+        "to provide more personalized support. If you'd like me to delete all your "
+        "stored information, just say \"delete my data\".*"
+    )
+
+    return "\n".join(response_parts)
+
+
+def _handle_delete_data_request() -> str:
+    """Delete user data and return confirmation message."""
+    client: Optional[DifyKnowledgeClient] = st.session_state.get("knowledge_client")
+
+    if not client or not st.session_state.knowledge_available:
+        return (
+            "There's no stored data to delete because the data storage feature "
+            "is not currently enabled."
+        )
+
+    try:
+        deleted = client.delete_user_data(st.session_state.user_email)
+    except DifyKnowledgeClientError:
+        return (
+            "I'm sorry, I couldn't delete your data at this time. "
+            "Please try again later."
+        )
+
+    if deleted:
+        # Clear local session state as well
+        st.session_state.context_history = []
+        st.session_state.user_name = ""
+        return (
+            "I've deleted all your stored information. Your conversation history "
+            "and any personal details I had saved have been removed.\n\n"
+            "Going forward, I may still save new conversations unless you ask me "
+            "to delete them again. How can I help you today?"
+        )
+    else:
+        return (
+            "I don't have any stored information about you to delete. "
+            "Your data is already clear!"
+        )
 
 
 def _render_persona_selection() -> None:
@@ -653,11 +798,19 @@ def main() -> None:
     agent = _bootstrap_agent()
     _sync_agent_conversation(agent)
 
+    # Show consent message for new users or greeting for returning users
     should_greet = (
         st.session_state.history_loaded
         and bool(st.session_state.context_history)
         and not st.session_state.greeted
     )
+
+    should_show_consent = (
+        st.session_state.history_loaded
+        and not st.session_state.context_history
+        and not st.session_state.consent_shown
+    )
+
     if should_greet:
         greeting = (
             f"Hello {st.session_state.user_name}, Nice to talk to you again. "
@@ -665,10 +818,80 @@ def main() -> None:
             if st.session_state.user_name
             else "Hello there, how can I help you today?"
         )
+        consent_reminder = (
+            "\n\n*To serve you better, I may save some of our chat. "
+            "But you have the choice to delete or remove saved information at any time. "
+            "Just ask me \"what information are you saving?\" or \"delete my data\" anytime.*"
+        )
         st.session_state.messages = [
-            {"role": "assistant", "content": greeting, "show_sources": False}
+            {"role": "assistant", "content": greeting + consent_reminder, "show_sources": False}
         ] + st.session_state.messages
         st.session_state.greeted = True
+        st.session_state.consent_shown = True
+    elif should_show_consent:
+        consent_message = (
+            "Hello! Welcome to the HIE Support Agent. I'm here to help you.\n\n"
+            "*To serve you better, I may save some of our chat. "
+            "But you have the choice to delete or remove saved information at any time. "
+            "Just ask me \"what information are you saving?\" or \"delete my data\" anytime.*\n\n"
+            "How can I assist you today?"
+        )
+        st.session_state.messages = [
+            {"role": "assistant", "content": consent_message, "show_sources": False}
+        ] + st.session_state.messages
+        st.session_state.consent_shown = True
+
+    # Sidebar with data privacy controls
+    with st.sidebar:
+        st.markdown("### Data Privacy")
+        st.markdown(
+            "*I may save summaries of our chats to serve you better. "
+            "You can manage your data anytime.*"
+        )
+
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("View My Data", use_container_width=True):
+                st.session_state._show_data_info = True
+        with col2:
+            if st.button("Delete My Data", use_container_width=True):
+                st.session_state._confirm_delete = True
+
+        # Handle View Data modal
+        if st.session_state.get("_show_data_info"):
+            st.divider()
+            st.markdown("#### Your Stored Information")
+            info_response = _handle_data_info_request()
+            st.markdown(info_response)
+            if st.button("Close", key="close_info"):
+                st.session_state._show_data_info = False
+                st.rerun()
+
+        # Handle Delete confirmation
+        if st.session_state.get("_confirm_delete"):
+            st.divider()
+            st.warning("Are you sure you want to delete all your stored data? This cannot be undone.")
+            col_yes, col_no = st.columns(2)
+            with col_yes:
+                if st.button("Yes, Delete", type="primary", use_container_width=True):
+                    delete_response = _handle_delete_data_request()
+                    st.session_state._confirm_delete = False
+                    st.session_state._delete_result = delete_response
+                    st.rerun()
+            with col_no:
+                if st.button("Cancel", use_container_width=True):
+                    st.session_state._confirm_delete = False
+                    st.rerun()
+
+        # Show delete result
+        if st.session_state.get("_delete_result"):
+            st.divider()
+            st.success(st.session_state._delete_result)
+            if st.button("OK", key="close_delete"):
+                st.session_state._delete_result = None
+                st.rerun()
+
+        st.divider()
 
     header_container = st.container()
     history_container = st.container()
@@ -695,6 +918,35 @@ def main() -> None:
     with st.chat_message("user"):
         st.markdown(prompt)
 
+    # Check for data privacy commands first
+    is_data_request = _is_data_info_request(prompt)
+    is_delete_request = _is_delete_data_request(prompt)
+
+    if is_data_request or is_delete_request:
+        # Handle data privacy requests locally without calling the agent
+        st.session_state.messages.append({
+            "role": "user",
+            "content": prompt,
+            "show_sources": False,
+        })
+
+        if is_delete_request:
+            response_content = _handle_delete_data_request()
+        else:
+            response_content = _handle_data_info_request()
+
+        with st.chat_message("assistant"):
+            st.markdown(response_content)
+
+        st.session_state.messages.append({
+            "role": "assistant",
+            "content": response_content,
+            "show_sources": False,
+        })
+
+        st.rerun()
+        return
+
     current_conversation_id = agent.conversation_id
     _append_message("user", prompt, current_conversation_id)
     should_show_sources = st.session_state.get("pending_hie_related", True)
@@ -713,15 +965,16 @@ def main() -> None:
 
     with st.chat_message("assistant"):
         st.markdown(agent_response.answer or "_No response returned._")
-        if should_show_sources:
-            _render_citations(agent_response.citations)
+        # Always show sources for agent responses, with "Web" fallback if no citations
+        _render_citations(agent_response.citations, fallback_to_web=True)
 
     _append_message(
         "assistant",
         agent_response.answer,
         agent.conversation_id,
         citations=agent_response.citations,
-        show_citations=should_show_sources,
+        show_citations=True,
+        fallback_to_web=True,
     )
 
     st.rerun()
